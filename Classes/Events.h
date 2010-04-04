@@ -1,6 +1,6 @@
 //
 //  Events.h
-//  HerdingKing
+//  HerdKing
 //
 //  Created by joao on 2010/04/01.
 //  Copyright 2010 __MyCompanyName__. All rights reserved.

@@ -1,6 +1,6 @@
 //
 //  MenuScene.m
-//  HerdingKing
+//  HerdKing
 //
 //  Created by joao on 2010/03/27.
 //  Copyright 2010 __MyCompanyName__. All rights reserved.

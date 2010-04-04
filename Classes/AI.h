@@ -1,6 +1,6 @@
 //
 //  AI.h
-//  HerdingKing
+//  HerdKing
 //
 //  Created by joao on 2010/03/14.
 //  Copyright 2010 __MyCompanyName__. All rights reserved.
@@ -15,7 +15,9 @@
     cpSpace *space; // space where the physics simulation happens
     cpShape *shape; // shape of the entity in the physics space
 }
+
 @property (readonly) NSString* name;
+
 -(id) initWithName:(NSString *)n;
 -(void) doActions;
 -(NSString *) checkConditions;
@@ -23,6 +25,7 @@
 -(void) exitActions;
 
 @end
+
 
 @interface StateMachine : NSObject {
     NSMutableDictionary *states;
@@ -34,11 +37,13 @@
 
 @end
 
+
 @interface SheepStateSnoozing : State {
     int count;
 }
 
 @end
+
 
 @interface SheepStateRunning : State {
     int count;

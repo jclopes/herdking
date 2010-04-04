@@ -1,6 +1,6 @@
 //
 //  Actors.m
-//  HerdingKing
+//  HerdKing
 //
 //  Created by joao on 2010/03/15.
 //  Copyright 2010 __MyCompanyName__. All rights reserved.
@@ -53,7 +53,7 @@
         shape = cpCircleShapeNew(body, radius, CGPointZero);
         sprite = [CCSprite spriteWithFile:@"cao.png"];
         [sprite retain];
-        
+
         shape->data = self;
         if (!sprite) {
             NSLog(@"sprite == nill !!!");
@@ -93,13 +93,13 @@
 //    };
 //    glDisable(GL_TEXTURE_2D);
 //    glEnableClientState(GL_COLOR_ARRAY);
-//    
+//
 //    glTranslatef(0.0, 0.0, 10.0);
 //    glLineWidth(1.0f);
 //    glColorPointer(4, GL_UNSIGNED_BYTE, 0, colors);
 //    glVertexPointer(2, GL_FLOAT, 0, vertices);
 //    glDrawArrays(GL_LINES, 0, 2);
-//    
+//
 //    glDisableClientState(GL_COLOR_ARRAY);
 //    glEnable(GL_TEXTURE_2D);
 //    [super draw];
@@ -115,23 +115,23 @@
     if ([event eventType] == @"accel_data") {
         NSValue *value = [[event parameters] objectForKey:@"vector"];
         CGPoint vector = [value CGPointValue];
-        
+
         cpBodyResetForces(body);
-        cpBodyApplyForce(body, ccpMult(vector, 900), CGPointZero);       
+        cpBodyApplyForce(body, ccpMult(vector, 900), CGPointZero);
     }
     if ([event eventType] == @"touch_data") {
         Event *e = [[Event alloc] initWithType:@"bark_event"];
-        
+
         NSValue *value = [NSValue valueWithCGPoint:body->p];
         [[e parameters] setObject:value forKey:@"origin"];
         [[EventManager sharedEventManager] triggerEvent:e];
     }
     if ([event eventType] == @"peak_event") {
         Event *e = [[Event alloc] initWithType:@"bark_event"];
-        
+
         NSValue *value = [NSValue valueWithCGPoint:body->p];
         [[e parameters] setObject:value forKey:@"origin"];
-        
+
         [[EventManager sharedEventManager] triggerEvent:e];
     }
 }
@@ -165,7 +165,7 @@
         shape = cpCircleShapeNew(body, radius, CGPointZero);
         sprite = [CCSprite spriteWithFile:@"sheep.png"];
         [sprite retain];
-        
+
         if (!sprite) {
             NSLog(@"sprite == nill !!!");
         }
@@ -182,7 +182,7 @@
         [brain setActiveStateByName:[st name]];
     }
     [[EventManager sharedEventManager] registerListener:self eventType:@"bark_event"];
-    
+
     return self;
 }
 
@@ -207,7 +207,7 @@
     if ([event eventType] == @"bark_event") {
         NSValue *value = [[event parameters] objectForKey:@"origin"];
         barkOrigin = [value CGPointValue];
-    }    
+    }
 }
 
 -(void) dealloc
@@ -237,7 +237,7 @@
         colors[4] = 255; colors[5] = 100; colors[6] = 100; colors[7] = 255;
         colors[8] = 255; colors[9] = 100; colors[10] = 100; colors[11] = 255;
         colors[12] = 255; colors[13] = 100; colors[14] = 100; colors[15] = 255;
-        
+
         body = cpBodyNew(INFINITY, INFINITY);
         cpBodySetPos(body, CGPointMake(0.0, 0.0));
         cpShape *l1 = cpSegmentShapeNew(body, CGPointMake(vertices[0], vertices[1]),
@@ -276,20 +276,20 @@
     if (!colorArrayEnabled) {
         glEnableClientState(GL_COLOR_ARRAY);
     }
-    
+
     BOOL vertexArrayEnabled = glIsEnabled(GL_VERTEX_ARRAY);
     if (!vertexArrayEnabled) {
         glEnableClientState(GL_VERTEX_ARRAY);
     }
-    
+
 //    glTranslatef(60.0, 1.0, 0.0);
     glLineWidth(2.0f);
-    
+
     glColorPointer(4, GL_UNSIGNED_BYTE, 0, colors);
     glVertexPointer(2, GL_FLOAT, 0, vertices);
-    
+
     glDrawArrays(GL_LINES, 0, 4);
-    
+
     if (!vertexArrayEnabled) {
         glDisableClientState(GL_VERTEX_ARRAY);
     }

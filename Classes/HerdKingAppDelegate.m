@@ -1,16 +1,16 @@
 //
-//  HerdingKingAppDelegate.m
-//  HerdingKing
+//  HerdKingAppDelegate.m
+//  HerdKing
 //
 //  Created by joao on 2010/03/25.
 //  Copyright __MyCompanyName__ 2010. All rights reserved.
 //
 
-#import "HerdingKingAppDelegate.h"
+#import "HerdKingAppDelegate.h"
 #import "cocos2d.h"
 #import "MenuScene.h"
 
-@implementation HerdingKingAppDelegate
+@implementation HerdKingAppDelegate
 
 @synthesize window;
 
