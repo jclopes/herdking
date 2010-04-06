@@ -25,7 +25,6 @@
 // Importing Chipmunk headers
 #import "chipmunk.h"
 
-#import "AI.h"
 #import "Events.h"
 
 
@@ -33,47 +32,52 @@
     int worldId;
     id name;
     NSString *type;
+    float mass;
+    float inertia;
+    int impulse;
     cpBody *body;
     cpShape *shape;
+    NSMutableDictionary *status;
 }
 
 @property (readwrite) int worldId;
+@property (readonly) NSString *type;
 @property (retain, readwrite) id name;
 @property (readonly) cpBody *body;
+@property (retain, readwrite) NSMutableDictionary *status;
 
 -(void) draw;
 -(void) updateWithTime:(float) dt;
 -(void) addToSpace:(cpSpace *)space;
 -(void) removeFromSpace:(cpSpace *)space;
+-(void) move_direction:(CGPoint)direction speed:(float)s;
 
 @end
 
 
 @interface Dog : Actor <EventListener> {
-    int impulse;
     int radius;
-    float mass;
-    float inertia;
     CCSprite *sprite;
     NSMutableArray *eventQueue;
 }
 
+-(id) initWithPosition:(CGPoint) p;
 -(void) handleEvent:(Event *)event;
 
 @end
 
 
 @interface Sheep : Actor <EventListener> {
-    int impulse;
     int radius;
-    float mass;
-    float inertia;
+    
     CCSprite *sprite;
-    StateMachine *brain;
-    CGPoint barkOrigin;
+    
+//    StateMachine *brain;
+    
     NSMutableArray *eventQueue;
 }
 
+-(id) initWithPosition:(CGPoint) p;
 -(void) handleEvent:(Event *)event;
 
 @end
@@ -82,8 +86,6 @@
 @interface FenceSegment : Actor {
     cpShape *shapeArray[2];
     cpBB bb;
-    float mass;
-    float inertia;
     GLfloat vertices[8];    // 4x (X, Y)
     GLubyte colors[16];     // 4x (R, G, B, A)
 }

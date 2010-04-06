@@ -11,8 +11,10 @@
 @implementation Actor
 
 @synthesize worldId;
+@synthesize type;
 @synthesize name;
 @synthesize body;
+@synthesize status;
 
 -(void) addToSpace:(cpSpace *)space
 {
@@ -26,6 +28,12 @@
     cpSpaceRemoveShape(space, shape);
 }
 
+-(void) move_direction:(CGPoint)direction speed:(float)s
+{
+    direction = cpvmult(direction, (impulse * s));
+    cpBodyApplyImpulse(body, direction, CGPointZero);
+}
+
 -(void) dealloc
 {
     cpBodyDestroy(body);
@@ -37,7 +45,7 @@
 
 @implementation Dog
 
--(id) init
+-(id) initWithPosition:(CGPoint)p
 {
     self = [super init];
     if (self != nil) {
@@ -49,7 +57,7 @@
         inertia = cpMomentForCircle(mass, 0, radius, CGPointZero);
         NSLog(@"inertia=%f", inertia);
         body = cpBodyNew(mass, inertia);
-        cpBodySetPos(body, CGPointMake(60.0, 60.0));
+        cpBodySetPos(body, p);
         shape = cpCircleShapeNew(body, radius, CGPointZero);
         sprite = [CCSprite spriteWithFile:@"cao.png"];
         [sprite retain];
@@ -79,31 +87,6 @@
     [eventQueue removeAllObjects];
     [sprite setPosition:body->p];
 }
-
-//-(void) draw
-//{
-//    static const GLfloat vertices[] =
-//    {
-//        2.0, 2.0,
-//        318.0, 478.0
-//    };
-//    static const GLubyte colors[] = {
-//        255,   0,   0, 255,
-//          0, 255, 255, 255
-//    };
-//    glDisable(GL_TEXTURE_2D);
-//    glEnableClientState(GL_COLOR_ARRAY);
-//
-//    glTranslatef(0.0, 0.0, 10.0);
-//    glLineWidth(1.0f);
-//    glColorPointer(4, GL_UNSIGNED_BYTE, 0, colors);
-//    glVertexPointer(2, GL_FLOAT, 0, vertices);
-//    glDrawArrays(GL_LINES, 0, 2);
-//
-//    glDisableClientState(GL_COLOR_ARRAY);
-//    glEnable(GL_TEXTURE_2D);
-//    [super draw];
-//}
 
 -(void) notify_event:(Event *)event
 {
@@ -150,22 +133,27 @@
 
 @implementation Sheep
 
--(id) init
+@synthesize status;
+
+-(id) initWithPosition:(CGPoint) p
 {
     self = [super init];
     if (self != nil) {
         eventQueue = [NSMutableArray new];
+        status = [NSMutableDictionary new];
         type = @"sheep";
-        radius = 12.0;
+        radius = 10.0;
         mass = 10.0;
         impulse = 10;
         inertia = cpMomentForCircle(mass, 0, radius, CGPointZero);
         body = cpBodyNew(mass, inertia);
-        cpBodySetPos(body, CGPointMake(120.0, 120.0));
+        cpBodySetPos(body, p);
         shape = cpCircleShapeNew(body, radius, CGPointZero);
+        shape->e = 0.6;
+        shape->u = 1.0;
+        
         sprite = [CCSprite spriteWithFile:@"sheep.png"];
         [sprite retain];
-
         if (!sprite) {
             NSLog(@"sprite == nill !!!");
         }
@@ -175,11 +163,6 @@
             [self addChild:sprite];
         }
         shape->data = self;
-        // AI
-        brain = [[StateMachine alloc] init];
-        State *st = [[SheepStateSnoozing alloc] init];
-        [brain addState:st];
-        [brain setActiveStateByName:[st name]];
     }
     [[EventManager sharedEventManager] registerListener:self eventType:@"bark_event"];
 
@@ -205,8 +188,9 @@
 {
     // Bark Event
     if ([event eventType] == @"bark_event") {
+        NSLog(@"BARK_EVENT *******");
         NSValue *value = [[event parameters] objectForKey:@"origin"];
-        barkOrigin = [value CGPointValue];
+        [status setObject:value forKey:@"heard_bark"];
     }
 }
 
@@ -214,7 +198,6 @@
 {
     cpShapeDestroy(shape);
     [type release];
-    [brain release];
     [sprite release];
     [super dealloc];
 }
@@ -303,7 +286,7 @@
 
 -(void) updateWithTime:(float)dt
 {
-    NSLog(@"FenceSegment upddateWithTime: This function shuld not be called !!");
+//    NSLog(@"FenceSegment upddateWithTime: This function shuld not be called !!");
 }
 
 - (void) dealloc
