@@ -6,6 +6,9 @@
 //  Copyright 2010 __MyCompanyName__. All rights reserved.
 //
 
+//import the world
+#import "WorldScene.h"
+
 #import "AI.h"
 
 
@@ -29,31 +32,32 @@
     [super dealloc];
 }
 
--(id) addState:(State *)state
+-(void) addState:(State *)state
 {
     [states setObject:state forKey:[state name]];
     NSLog(@"adding state: %@", [state name]);
-    return state;
 }
 
--(id) setActiveStateByName:(NSString *)name
+-(void) setActiveStateByName:(NSString *)name
 {
-    activeState = [states objectForKey:name];
-    return activeState;
+    State *newState = [states objectForKey:name];
+    if (newState) {
+        [activeState exitActions];
+        activeState = newState;
+        [activeState entryActions];
+    }
 }
 
--(id) think
+-(void) think
 {
     NSString *newStateName;
-    if (activeState == nil) {
-        return nil;
+    if (activeState != nil) {
+        [activeState doActions];
+        newStateName = [activeState checkConditions];
+        if (newStateName) {
+            [self setActiveStateByName:newStateName];
+        }
     }
-    [activeState doActions];
-    newStateName = [activeState checkConditions];
-    if (newStateName) {
-        [self setActiveStateByName:newStateName];
-    }
-    return activeState;
 }
 
 @end
@@ -63,10 +67,11 @@
 
 @synthesize name;
 
--(id) initWithName:(NSString *)stateName{
+-(id) initWithName:(NSString *)stateName owner:(id)object {
     self = [super init];
     if (self) {
         name = stateName;
+        owner = object;
     }
     return self;
 }
@@ -76,24 +81,25 @@
 
 @implementation SheepStateSnoozing
 
--(id) init
+-(id) initWithOwner:(id)ownerPtr
 {
-    self = [super initWithName:@"SheepStateSnoozing"];
+    self = [super initWithName:@"SheepStateSnoozing" owner:ownerPtr];
     if (self) {
-        count = 0;
+        MAX_COUNT = 50;
+        count = MAX_COUNT;
+        owner = ownerPtr;
     }
     return self;
 }
 
 -(void) entryActions
 {
-    const int MAX_COUNT = 50;
+    NSLog(@"SNOOZING STATE");
     count = MAX_COUNT;
 }
 
 -(void) exitActions
 {
-    ;
 }
 
 -(void) doActions
@@ -103,10 +109,15 @@
 
 -(NSString *) checkConditions
 {
-    if (count <= 0) {
-        ;
+    NSMutableDictionary *st = [owner status];
+    NSValue *barkOrigin = [st objectForKey:@"heard_bark"];
+    if (barkOrigin) {
+        return @"SheepStateRunning";
     }
-    return name;
+    if (count <= 0) {
+        return @"SheepStateGrouping";
+    }
+    return nil;
 }
 
 @end
@@ -114,38 +125,101 @@
 
 @implementation SheepStateRunning
 
--(id) init
+-(id) initWithOwner:(id)ownerPtr
 {
-    self = [super initWithName:@"SheepStateRunning"];
+    self = [super initWithName:@"SheepStateRunning" owner:ownerPtr];
     if (self) {
-        count = 0;
+        MAX_HEARING_DIST = 150;
+        MAX_COUNT = 150;
+        count = MAX_COUNT;
+        owner = ownerPtr;
     }
     return self;
 }
 
 -(void) entryActions
 {
-    const int MAX_COUNT = 50;
+    NSLog(@"RUNNING STATE");
     count = MAX_COUNT;
-    //TODO: Run away from bark origin
 }
 
 -(void) exitActions
 {
-    ;
+    // clear the heard_bark status
+    NSMutableDictionary *st = [owner status];
+    [st removeObjectForKey:@"heard_bark"];
 }
 
 -(void) doActions
 {
     count -= 1;
+    NSMutableDictionary *st = [owner status];
+    NSValue *barkValue = [st objectForKey:@"heard_bark"];
+    CGPoint direction = cpvsub(owner.body->p, [barkValue CGPointValue]);
+
+    float dist = cpvlength(direction);
+    direction = cpvnormalize(direction);
+    dist = MIN(dist, MAX_HEARING_DIST);
+    float speed = 1.0 - (dist/MAX_HEARING_DIST);
+    [owner move_direction:direction speed:speed];
 }
 
 -(NSString *) checkConditions
 {
     if (count <= 0) {
+        return @"SheepStateGrouping";
+    }
+    return nil;
+}
+
+@end
+
+
+@implementation SheepStateGrouping
+
+-(id) initWithOwner:(id)ownerPtr
+{
+    self = [super initWithName:@"SheepStateGrouping" owner:ownerPtr];
+    if (self) {
+        MAX_COUNT = 150;
+        count = MAX_COUNT;
+        owner = ownerPtr;
+    }
+    return self;
+}
+
+-(void) entryActions
+{
+    NSLog(@"GROUPING STATE");
+    count = MAX_COUNT;
+}
+
+-(void) exitActions
+{
+}
+
+-(void) doActions
+{
+    count -= 1;
+    
+    Actor * nearestSheep = [[World sharedWorld] nearets_actor_type:@"sheep" to_actor:owner];
+    if (nearestSheep) {
+        CGPoint direction = cpvsub(nearestSheep.body->p, owner.body->p);
+        [owner move_direction:cpvnormalize(direction) speed:0.3];
+    }
+}
+
+-(NSString *) checkConditions
+{
+    NSMutableDictionary *st = [owner status];
+    NSValue *barkOrigin = [st objectForKey:@"heard_bark"];
+    if (barkOrigin) {
+        return @"SheepStateRunning";
+    }
+    if (count <= 0) {
         return @"SheepStateSnoozing";
     }
-    return name;
+    return nil;
 }
 
 @end
