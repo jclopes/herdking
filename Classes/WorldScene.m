@@ -1,6 +1,6 @@
 //
-// cocos2d World example
-// http://www.cocos2d-iphone.org
+// World
+// Class that represents the level world map where all happens
 //
 
 #import "SCListener.h"
@@ -9,20 +9,62 @@
 #import "WorldScene.h"
 
 #import "MenuScene.h"
+#import "AI.h"
 #import "Events.h"
 
-// World implementation
+
+static World *sharedWorld = nil;
+
 @implementation World
+
+// Singleton Design Pattern
+
++(World *) sharedWorld
+{
+    if (sharedWorld == nil) {
+        sharedWorld = [[super allocWithZone:NULL] init];
+    }
+    
+    return sharedWorld;
+}
+
++(id) allocWithZone:(NSZone *)zone
+{
+    return [self sharedWorld];
+}
+
+- (id)copyWithZone:(NSZone *)zone {
+	return self;
+}
+
+- (id)retain {
+	return self;
+}
+
+- (unsigned)retainCount {
+	return UINT_MAX;
+}
+
+- (void)release {
+	// Do nothing.
+}
+
+- (id)autorelease {
+	return self;
+}
+
+// World implementation
 
 -(id) init
 {
-	if( (self=[super init])) {
+	if ((self=[super init])) {
 		
 		self.isTouchEnabled = YES;
 		self.isAccelerometerEnabled = YES;
 		
         idCounter = 0;
         actorsList = [NSMutableArray new];
+        brainsList = [NSMutableArray new];
         
 		CGSize wins = [[CCDirector sharedDirector] winSize];
 		cpInitChipmunk();
@@ -32,8 +74,8 @@
 		cpSpaceResizeStaticHash(space, 400.0f, 40);
 		cpSpaceResizeActiveHash(space, 100, 600);
 		
-        space->damping = 0.6;
-		space->gravity = ccp(0, 0);
+        space->damping = 0.5;
+		space->gravity = CGPointZero;
 		space->elasticIterations = space->iterations;
 		
         // Creates Map boundaries
@@ -62,11 +104,20 @@
         // Run step method every frame
 		[self schedule: @selector(step:)];
         // Run check_mic every 0.1 second
-        [self schedule:@selector(check_mic:)];
+        [self schedule: @selector(check_mic:) interval: 0.3];
 	}
 	
 	return self;
 }
+
+- (void) dealloc
+{
+    cpSpaceDestroy(space);
+    [actorsList dealloc];
+    [brainsList dealloc];
+    [super dealloc];
+}
+
 
 -(int) nextId
 {
@@ -88,6 +139,23 @@
     [self removeChild:actor cleanup:YES];
 }
 
+-(Actor *) nearets_actor_type:(NSString *)type to_actor:(Actor *)actor
+{
+    Actor *res = nil;
+    float minDist = 0;
+    CGPoint position = actor.body->p;
+    
+    for (Actor *a in actorsList) {
+        if ([a type] == type && a != actor) {
+            float dist = cpvlengthsq(cpvsub(position, [a body]->p));
+            if ((minDist == 0) || (minDist > dist)) {
+                res = a;
+            }
+        }
+    }
+    return res;
+}
+
 -(void) onEnter
 {
 	[super onEnter];
@@ -95,15 +163,39 @@
 	NSLog(@"!!! ENTER WORLD !!!");
     
     // Add dynamic and static actors
-    Actor *dog = [[Dog alloc]init];
+    Actor *dog = [[Dog alloc]initWithPosition:CGPointMake(80.0, 80.0)];
     [self addActor:dog];
     player = dog;
     
-    Actor *sheep = [[Sheep alloc]init];
-    [self addActor:sheep];
+    Actor *sheep1 = [[Sheep alloc]initWithPosition:CGPointMake(80.0, 40.0)];
+    [self addActor:sheep1];
+    
+    Actor *sheep2 = [[Sheep alloc]initWithPosition:CGPointMake(85.0, 20.0)];
+    [self addActor:sheep2];
     
     Actor *fence = [[FenceSegment alloc]init];
     [self addActor:fence];
+    
+    // AI for 1 sheep
+    StateMachine *sheepBrain = [[StateMachine alloc] init];
+    State *st = [[SheepStateSnoozing alloc] initWithOwner:sheep1];
+    [sheepBrain addState:st];
+    [sheepBrain setActiveStateByName:[st name]];
+    st = [[SheepStateRunning alloc] initWithOwner:sheep1];
+    [sheepBrain addState:st];
+    st = [[SheepStateGrouping alloc] initWithOwner:sheep1];
+    [sheepBrain addState:st];
+    [brainsList addObject:sheepBrain];
+    
+    sheepBrain = [[StateMachine alloc] init];
+    st = [[SheepStateSnoozing alloc] initWithOwner:sheep2];
+    [sheepBrain addState:st];
+    [sheepBrain setActiveStateByName:[st name]];
+    st = [[SheepStateRunning alloc] initWithOwner:sheep2];
+    [sheepBrain addState:st];
+    st = [[SheepStateGrouping alloc] initWithOwner:sheep2];
+    [sheepBrain addState:st];
+    [brainsList addObject:sheepBrain];
     
     // Start accelerometer
 	[[UIAccelerometer sharedAccelerometer] setUpdateInterval:(1.0 / 60)];
@@ -134,6 +226,9 @@
     for (Actor *actor in actorsList) {
         [actor updateWithTime:delta];
     }
+    for (StateMachine *brain in brainsList) {
+        [brain think];
+    }
     
     cpSpaceStep(space, delta);
     
@@ -147,7 +242,7 @@
         CGPoint vector = [touch locationInView: [touch view]];
         NSValue *value = [NSValue valueWithCGPoint:vector];
 
-//        vector = [[CCDirector sharedDirector] convertToGL: vector];
+        vector = [[CCDirector sharedDirector] convertToGL: vector];
         EventManager *em = [EventManager sharedEventManager];
         Event *e = [[Event alloc] initWithType:@"touch_data"];
         
