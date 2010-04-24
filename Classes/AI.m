@@ -76,6 +76,23 @@
     return self;
 }
 
+-(void) entryActions
+{
+}
+
+-(void) exitActions
+{
+}
+
+-(void) doActions
+{
+}
+
+-(NSString *) checkConditions
+{
+    return name;
+}
+
 @end
 
 
@@ -85,7 +102,7 @@
 {
     self = [super initWithName:@"SheepStateSnoozing" owner:ownerPtr];
     if (self) {
-        MAX_COUNT = 50;
+        MAX_COUNT = 200;
         count = MAX_COUNT;
         owner = ownerPtr;
     }
@@ -94,12 +111,7 @@
 
 -(void) entryActions
 {
-    NSLog(@"SNOOZING STATE");
     count = MAX_COUNT;
-}
-
--(void) exitActions
-{
 }
 
 -(void) doActions
@@ -130,7 +142,7 @@
     self = [super initWithName:@"SheepStateRunning" owner:ownerPtr];
     if (self) {
         MAX_HEARING_DIST = 150;
-        MAX_COUNT = 150;
+        MAX_COUNT = 40;
         count = MAX_COUNT;
         owner = ownerPtr;
     }
@@ -139,7 +151,6 @@
 
 -(void) entryActions
 {
-    NSLog(@"RUNNING STATE");
     count = MAX_COUNT;
 }
 
@@ -181,7 +192,7 @@
 {
     self = [super initWithName:@"SheepStateGrouping" owner:ownerPtr];
     if (self) {
-        MAX_COUNT = 150;
+        MAX_COUNT = 50;
         count = MAX_COUNT;
         owner = ownerPtr;
     }
@@ -190,12 +201,7 @@
 
 -(void) entryActions
 {
-    NSLog(@"GROUPING STATE");
     count = MAX_COUNT;
-}
-
--(void) exitActions
-{
 }
 
 -(void) doActions
