@@ -44,9 +44,9 @@
 @property (readonly) NSString *type;
 @property (retain, readwrite) id name;
 @property (readonly) cpBody *body;
+@property (readonly) cpShape *shape;
 @property (retain, readwrite) NSMutableDictionary *status;
 
--(void) draw;
 -(void) updateWithTime:(float) dt;
 -(void) addToSpace:(cpSpace *)space;
 -(void) removeFromSpace:(cpSpace *)space;
@@ -57,6 +57,7 @@
 
 @interface Dog : Actor <EventListener> {
     int radius;
+    float MAX_SPEED;
     CCSprite *sprite;
     NSMutableArray *eventQueue;
 }
@@ -89,5 +90,7 @@
     GLfloat vertices[8];    // 4x (X, Y)
     GLubyte colors[16];     // 4x (R, G, B, A)
 }
+
+@property (readonly)cpBB bb;
 
 @end

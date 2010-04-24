@@ -13,7 +13,7 @@
 @synthesize worldId;
 @synthesize type;
 @synthesize name;
-@synthesize body;
+@synthesize body, shape;
 @synthesize status;
 
 -(void) addToSpace:(cpSpace *)space
@@ -34,6 +34,10 @@
     cpBodyApplyImpulse(body, direction, CGPointZero);
 }
 
+-(void) updateWithTime:(float)dt
+{
+}
+
 -(void) dealloc
 {
     cpBodyDestroy(body);
@@ -52,14 +56,16 @@
         eventQueue = [NSMutableArray new];
         type = @"player";
         radius = 6.0;
-        mass = 5.0;
-        impulse = 10;
+        MAX_SPEED = 100.0;
+        mass = 50.0;
+        impulse = 100;
         inertia = cpMomentForCircle(mass, 0, radius, CGPointZero);
         NSLog(@"inertia=%f", inertia);
         body = cpBodyNew(mass, inertia);
+//        body->v_limit = 100.0;
         cpBodySetPos(body, p);
         shape = cpCircleShapeNew(body, radius, CGPointZero);
-        sprite = [CCSprite spriteWithFile:@"cao.png"];
+        sprite = [CCSprite spriteWithFile:@"dog.png"];
         [sprite retain];
 
         shape->data = self;
@@ -85,6 +91,16 @@
         [self handleEvent:e];
     }
     [eventQueue removeAllObjects];
+    
+    // control speed - the higher the speed the more we counter it (terminal velocity)
+    float velocityLen = cpvlength(body->v);
+    if (velocityLen > 0) {
+        CGPoint velocityNeg = cpvneg(body->v);
+        float accel = abs(MAX_SPEED - abs(MAX_SPEED - velocityLen));
+        CGPoint dumpingVector = cpvmult(velocityNeg, accel);
+        cpBodyApplyForce(body, dumpingVector, CGPointZero);
+    }
+    
     [sprite setPosition:body->p];
 }
 
@@ -100,7 +116,7 @@
         CGPoint vector = [value CGPointValue];
 
         cpBodyResetForces(body);
-        cpBodyApplyForce(body, ccpMult(vector, 900), CGPointZero);
+        cpBodyApplyForce(body, ccpMult(vector, impulse*300), CGPointZero);
     }
     if ([event eventType] == @"touch_data") {
         Event *e = [[Event alloc] initWithType:@"bark_event"];
@@ -133,8 +149,6 @@
 
 @implementation Sheep
 
-@synthesize status;
-
 -(id) initWithPosition:(CGPoint) p
 {
     self = [super init];
@@ -143,8 +157,8 @@
         status = [NSMutableDictionary new];
         type = @"sheep";
         radius = 10.0;
-        mass = 10.0;
-        impulse = 10;
+        mass = 100.0;
+        impulse = 200;
         inertia = cpMomentForCircle(mass, 0, radius, CGPointZero);
         body = cpBodyNew(mass, inertia);
         cpBodySetPos(body, p);
@@ -159,7 +173,6 @@
         }
         else {
             NSLog(@"sprite loaded !!!");
-            [sprite setRotation:0.5];
             [self addChild:sprite];
         }
         shape->data = self;
@@ -188,7 +201,6 @@
 {
     // Bark Event
     if ([event eventType] == @"bark_event") {
-        NSLog(@"BARK_EVENT *******");
         NSValue *value = [[event parameters] objectForKey:@"origin"];
         [status setObject:value forKey:@"heard_bark"];
     }
@@ -206,6 +218,8 @@
 
 
 @implementation FenceSegment
+
+@synthesize bb;
 
 -(id) init
 {
@@ -282,11 +296,6 @@
     if (texture2dEnabled) {
         glEnable(GL_TEXTURE_2D);
     }
-}
-
--(void) updateWithTime:(float)dt
-{
-//    NSLog(@"FenceSegment upddateWithTime: This function shuld not be called !!");
 }
 
 - (void) dealloc
