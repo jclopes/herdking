@@ -17,6 +17,9 @@ static World *sharedWorld = nil;
 
 @implementation World
 
+@synthesize allPlayingTime;
+@synthesize totalHerdedSheeps;
+
 // Singleton Design Pattern
 
 +(World *) sharedWorld
@@ -62,11 +65,20 @@ static World *sharedWorld = nil;
 		self.isTouchEnabled = YES;
 		self.isAccelerometerEnabled = YES;
 		
+        MAX_LEVEL_TIME = 60;
+        levelTime = 0;
+        allPlayingTime = 0;
+        totalHerdedSheeps = 0;
+        
         idCounter = 0;
         actorsList = [NSMutableArray new];
         brainsList = [NSMutableArray new];
         
 		CGSize wins = [[CCDirector sharedDirector] winSize];
+        CCSprite *background = [CCSprite spriteWithFile:@"background.png"];
+        background.position = CGPointMake(160, 240);
+        [self addChild:background];
+        
 		cpInitChipmunk();
 		
 		cpBody *staticBody = cpBodyNew(INFINITY, INFINITY);
@@ -74,8 +86,9 @@ static World *sharedWorld = nil;
 		cpSpaceResizeStaticHash(space, 400.0f, 40);
 		cpSpaceResizeActiveHash(space, 100, 600);
 		
-        space->damping = 0.5;
+        space->damping = 0.6;
 		space->gravity = CGPointZero;
+        space->iterations = 30;
 		space->elasticIterations = space->iterations;
 		
         // Creates Map boundaries
@@ -101,10 +114,12 @@ static World *sharedWorld = nil;
 		shape->e = 1.0f; shape->u = 1.0f;
 		cpSpaceAddStaticShape(space, shape);
         
-        // Run step method every frame
-		[self schedule: @selector(step:)];
-        // Run check_mic every 0.1 second
-        [self schedule: @selector(check_mic:) interval: 0.3];
+        timerText = [CCLabel labelWithString:[NSString stringWithFormat:@"%2.2f", MAX_LEVEL_TIME] fontName:@"Arial" fontSize:14];
+        [timerText setPosition:CGPointMake(160, 470)];
+        [self addChild:timerText];
+        
+        // Start mic listening
+        [[SCListener sharedListener] listen];
 	}
 	
 	return self;
@@ -112,12 +127,51 @@ static World *sharedWorld = nil;
 
 - (void) dealloc
 {
+    [player release];
+    [fence release];
     cpSpaceDestroy(space);
-    [actorsList dealloc];
-    [brainsList dealloc];
+    [actorsList release];
+    [brainsList release];
     [super dealloc];
 }
 
+-(void) load_level:(int)levelNumber
+{
+    NSString *levelName = [NSString stringWithFormat:@"lv%d.plist", levelNumber];
+    NSString *fullpath = [CCFileUtils fullPathFromRelativePath:levelName];
+    NSDictionary *lv = [NSDictionary dictionaryWithContentsOfFile:fullpath];
+    
+    // Load Player Dog
+    NSDictionary *dogPosition = [lv objectForKey:@"dog"];
+    NSNumber *x = [dogPosition objectForKey:@"x"];
+    NSNumber *y = [dogPosition objectForKey:@"y"];
+    player = [[Dog alloc]initWithPosition:CGPointMake([x intValue], [y intValue])];
+    [self addActor:player];
+    
+    // Load Sheeps
+    NSArray *sheepList = [lv objectForKey:@"sheeps"];
+    for (NSDictionary *sheepPosition in sheepList) {
+        x = [sheepPosition objectForKey:@"x"];
+        y = [sheepPosition objectForKey:@"y"];
+        Actor *sheep = [[[Sheep alloc]initWithPosition:CGPointMake([x intValue], [y intValue])]autorelease];
+        [self addActor:sheep];
+        
+        // AI for sheep
+        StateMachine *sheepBrain = [[[StateMachine alloc] init] autorelease];
+        State *st = [[SheepStateSnoozing alloc] initWithOwner:sheep];
+        [sheepBrain addState:st];
+        [sheepBrain setActiveStateByName:[st name]];
+        st = [[[SheepStateRunning alloc] initWithOwner:sheep] autorelease];
+        [sheepBrain addState:st];
+        st = [[[SheepStateGrouping alloc] initWithOwner:sheep] autorelease];
+        [sheepBrain addState:st];
+        [brainsList addObject:sheepBrain];
+    }
+    
+    // Load Fence
+    fence = [[FenceSegment alloc]init];
+    [self addActor:fence];
+}
 
 -(int) nextId
 {
@@ -156,52 +210,46 @@ static World *sharedWorld = nil;
     return res;
 }
 
+-(void) check_end:(ccTime)delta
+{
+    int sheepsOutside = 0;
+    
+    if (levelTime >= MAX_LEVEL_TIME) {
+        NSLog(@"GAME OVER");
+        [self onEnd:delta];
+    }
+    for (Actor *a in actorsList) {
+        if (a.type == @"sheep") {
+            if( cpBBcontainsBB([fence bb], a.shape->bb) ) {
+                [self removeActor:a];
+                totalHerdedSheeps += 1;
+            }
+            else {
+                sheepsOutside += 1;
+            }
+        }
+    }
+    if (sheepsOutside == 0) {
+        NSLog(@"FINISHED LEVEL WITH TIME:%2.3f", levelTime);
+        [self onEnd:delta];
+    }
+}
+
 -(void) onEnter
 {
 	[super onEnter];
     
 	NSLog(@"!!! ENTER WORLD !!!");
     
-    // Add dynamic and static actors
-    Actor *dog = [[Dog alloc]initWithPosition:CGPointMake(80.0, 80.0)];
-    [self addActor:dog];
-    player = dog;
-    
-    Actor *sheep1 = [[Sheep alloc]initWithPosition:CGPointMake(80.0, 40.0)];
-    [self addActor:sheep1];
-    
-    Actor *sheep2 = [[Sheep alloc]initWithPosition:CGPointMake(85.0, 20.0)];
-    [self addActor:sheep2];
-    
-    Actor *fence = [[FenceSegment alloc]init];
-    [self addActor:fence];
-    
-    // AI for 1 sheep
-    StateMachine *sheepBrain = [[StateMachine alloc] init];
-    State *st = [[SheepStateSnoozing alloc] initWithOwner:sheep1];
-    [sheepBrain addState:st];
-    [sheepBrain setActiveStateByName:[st name]];
-    st = [[SheepStateRunning alloc] initWithOwner:sheep1];
-    [sheepBrain addState:st];
-    st = [[SheepStateGrouping alloc] initWithOwner:sheep1];
-    [sheepBrain addState:st];
-    [brainsList addObject:sheepBrain];
-    
-    sheepBrain = [[StateMachine alloc] init];
-    st = [[SheepStateSnoozing alloc] initWithOwner:sheep2];
-    [sheepBrain addState:st];
-    [sheepBrain setActiveStateByName:[st name]];
-    st = [[SheepStateRunning alloc] initWithOwner:sheep2];
-    [sheepBrain addState:st];
-    st = [[SheepStateGrouping alloc] initWithOwner:sheep2];
-    [sheepBrain addState:st];
-    [brainsList addObject:sheepBrain];
+    [self load_level:1];
     
     // Start accelerometer
-	[[UIAccelerometer sharedAccelerometer] setUpdateInterval:(1.0 / 60)];
+	[[UIAccelerometer sharedAccelerometer] setUpdateInterval:(1.0 / 30)];
     
-    // Start mic listening
-    [[SCListener sharedListener] listen];
+    // Run step method every frame
+    [self schedule: @selector(step:)];
+    // Run check_mic every 0.1 second
+    [self schedule: @selector(check_mic:) interval: 1.0/3];
 }
 
 -(void) onEnd:(ccTime)dt
@@ -223,6 +271,9 @@ static World *sharedWorld = nil;
 
 -(void) step:(ccTime)delta
 {
+    [timerText setString:[NSString stringWithFormat:@"%2.3f", MAX_LEVEL_TIME - levelTime]];
+    [self check_end:delta];
+    
     for (Actor *actor in actorsList) {
         [actor updateWithTime:delta];
     }
@@ -230,7 +281,9 @@ static World *sharedWorld = nil;
         [brain think];
     }
     
-    cpSpaceStep(space, delta);
+    levelTime += delta;
+    
+    cpSpaceStep(space, 1.0/59.0);
     
 //	cpSpaceHashEach(space->activeShapes, &eachShape, &delta);
 //	cpSpaceHashEach(space->staticShapes, &eachShape, &delta);
@@ -243,11 +296,10 @@ static World *sharedWorld = nil;
         NSValue *value = [NSValue valueWithCGPoint:vector];
 
         vector = [[CCDirector sharedDirector] convertToGL: vector];
-        EventManager *em = [EventManager sharedEventManager];
         Event *e = [[Event alloc] initWithType:@"touch_data"];
         
         [[e parameters] setObject:value forKey:@"vector"];
-        [em triggerEvent:e];
+        [[EventManager sharedEventManager] triggerEvent:e];
     }
 }
 

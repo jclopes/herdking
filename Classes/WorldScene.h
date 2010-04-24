@@ -16,8 +16,17 @@
     NSMutableArray *actorsList;
     NSMutableArray *brainsList;
 	cpSpace *space;
-    Actor *player;
+    Dog *player;
+    FenceSegment *fence;
+    CCLabel *timerText;
+    float MAX_LEVEL_TIME;
+    float levelTime;
+    float allPlayingTime;
+    int totalHerdedSheeps;
 }
+
+@property (readonly) float allPlayingTime;
+@property (readonly) int totalHerdedSheeps;
 
 + (World *)sharedWorld;
 
@@ -29,5 +38,7 @@
 -(void) onEnd:(ccTime) dt;
 -(void) step:(ccTime) delta;
 -(void) check_mic:(ccTime)delta;
+-(void) check_end:(ccTime)delta;
+-(void) load_level:(int)levelNumber;
 
 @end
