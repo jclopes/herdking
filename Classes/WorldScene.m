@@ -65,7 +65,7 @@ static World *sharedWorld = nil;
 		self.isTouchEnabled = YES;
 		self.isAccelerometerEnabled = YES;
 		
-        MAX_LEVEL_TIME = 60;
+        MAX_LEVEL_TIME = 50;
         levelTime = 0;
         allPlayingTime = 0;
         totalHerdedSheeps = 0;
@@ -189,8 +189,9 @@ static World *sharedWorld = nil;
 
 -(void) removeActor:(Actor *)actor
 {
-// TODO:    [actor removeFromSpace:space];
+    [actor removeFromSpace:space];
     [self removeChild:actor cleanup:YES];
+    [actorsList removeObject:actor];
 }
 
 -(Actor *) nearets_actor_type:(NSString *)type to_actor:(Actor *)actor
@@ -248,14 +249,14 @@ static World *sharedWorld = nil;
     
     // Run step method every frame
     [self schedule: @selector(step:)];
-    // Run check_mic every 0.1 second
+    // Run check_mic every 0.33 second
     [self schedule: @selector(check_mic:) interval: 1.0/3];
 }
 
 -(void) onEnd:(ccTime)dt
 {
     [[SCListener sharedListener] stop];
-    [[CCDirector sharedDirector] replaceScene:[MenuScene node]];
+    [[CCDirector sharedDirector] replaceScene:[TimeOutScene node]];
 }
 
 -(void) check_mic:(ccTime)delta
@@ -266,6 +267,7 @@ static World *sharedWorld = nil;
         NSNumber *value = [NSNumber numberWithFloat:soundPeak];
         [[e parameters] setObject:value forKey:@"peak_volume"];
         [[EventManager sharedEventManager] triggerEvent:e];
+        [e release];
     }
 }
 
@@ -284,9 +286,6 @@ static World *sharedWorld = nil;
     levelTime += delta;
     
     cpSpaceStep(space, 1.0/59.0);
-    
-//	cpSpaceHashEach(space->activeShapes, &eachShape, &delta);
-//	cpSpaceHashEach(space->staticShapes, &eachShape, &delta);
 }
 
 -(void) ccTouchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
@@ -300,6 +299,7 @@ static World *sharedWorld = nil;
         
         [[e parameters] setObject:value forKey:@"vector"];
         [[EventManager sharedEventManager] triggerEvent:e];
+        [e release];
     }
 }
 
@@ -324,6 +324,7 @@ static World *sharedWorld = nil;
     
     [[e parameters] setObject:value forKey:@"vector"];
     [em triggerEvent:e];
+    [e release];
 }
 
 @end

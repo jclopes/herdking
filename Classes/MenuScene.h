@@ -23,13 +23,33 @@
 
 @end
 
-@interface StettingsScene : CCScene {
+
+@interface SettingsScene : CCScene {
     
 }
 
 @end
 
+
 @interface AboutScene : CCScene {
+    
+}
+
+-(void) onTouch:(id)sender;
+
+@end
+
+
+@interface TimeOutScene : CCScene {
+    
+}
+
+-(void) onTouch:(id)sender;
+
+@end
+
+
+@interface VictoryScene : CCScene {
     
 }
 

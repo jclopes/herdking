@@ -93,3 +93,42 @@
 
 @end
 
+
+@implementation TimeOutScene
+
+- (id) init
+{
+    self = [super init];
+    
+    if (self != nil) {
+        CCSprite *background = [CCSprite spriteWithFile:@"timeout.png"];
+        [background setPosition:CGPointMake(160, 240)];
+        
+        CCMenuItem *menuItem = [CCMenuItemSprite itemFromNormalSprite:background selectedSprite:nil target:self selector:@selector(onTouch:)];
+        CCMenu *menu = [CCMenu menuWithItems:menuItem, nil];
+        
+        [self addChild:menu];
+        
+        CCLabel *totalTime = [CCLabel labelWithString:[NSString stringWithFormat:@"Total playing time: %2.2f",
+                                                       [[World sharedWorld] allPlayingTime]]
+                                             fontName:@"Arial"
+                                             fontSize:20];
+        [totalTime setPosition:CGPointMake(160, 270)];
+        [self addChild:totalTime];
+        CCLabel *numberOfSheeps = [CCLabel labelWithString:[NSString stringWithFormat:@"Score: %4d",
+                                                            [[World sharedWorld] totalHerdedSheeps]]
+                                                  fontName:@"Arial"
+                                                  fontSize:20];
+        [numberOfSheeps setPosition:CGPointMake(160, 230)];
+        [self addChild:numberOfSheeps];
+    }
+    return self;
+}
+
+-(void) onTouch:(id) sender
+{
+    [[CCDirector sharedDirector] replaceScene:[MenuScene node]];
+}
+
+@end
+

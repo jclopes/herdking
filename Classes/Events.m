@@ -26,8 +26,8 @@
 
 -(void) dealloc
 {
-    [parameters dealloc];
-    [eventType dealloc];
+    [parameters release];
+    [eventType release];
     [super dealloc];
 }
 

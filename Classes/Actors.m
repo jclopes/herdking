@@ -40,7 +40,6 @@
 
 -(void) dealloc
 {
-    cpBodyDestroy(body);
     [super dealloc];
 }
 
@@ -62,7 +61,7 @@
         inertia = cpMomentForCircle(mass, 0, radius, CGPointZero);
         NSLog(@"inertia=%f", inertia);
         body = cpBodyNew(mass, inertia);
-//        body->v_limit = 100.0;
+
         cpBodySetPos(body, p);
         shape = cpCircleShapeNew(body, radius, CGPointZero);
         sprite = [CCSprite spriteWithFile:@"dog.png"];
@@ -124,6 +123,7 @@
         NSValue *value = [NSValue valueWithCGPoint:body->p];
         [[e parameters] setObject:value forKey:@"origin"];
         [[EventManager sharedEventManager] triggerEvent:e];
+        [e release];
     }
     if ([event eventType] == @"peak_event") {
         Event *e = [[Event alloc] initWithType:@"bark_event"];
@@ -132,6 +132,7 @@
         [[e parameters] setObject:value forKey:@"origin"];
 
         [[EventManager sharedEventManager] triggerEvent:e];
+        [e release];
     }
 }
 
@@ -139,6 +140,7 @@
 {
     [eventQueue release];
     cpShapeDestroy(shape);
+    cpBodyDestroy(body);
     [type release];
     [sprite release];
     [super dealloc];
@@ -209,6 +211,7 @@
 -(void) dealloc
 {
     cpShapeDestroy(shape);
+    cpBodyDestroy(body);
     [type release];
     [sprite release];
     [super dealloc];
@@ -302,6 +305,7 @@
 {
     cpShapeDestroy(shapeArray[0]);
     cpShapeDestroy(shapeArray[1]);
+    cpBodyDestroy(body);
     [type release];
     [super dealloc];
 }
