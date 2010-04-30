@@ -101,7 +101,14 @@
     self = [super init];
     
     if (self != nil) {
-        CCSprite *background = [CCSprite spriteWithFile:@"timeout.png"];
+        BOOL completedLevel = [[World sharedWorld] completedLevel];
+        CCSprite *background;
+        if (completedLevel) {
+            background = [CCSprite spriteWithFile:@"victory.png"];
+        }
+        else {
+            background = [CCSprite spriteWithFile:@"timeout.png"];
+        }
         [background setPosition:CGPointMake(160, 240)];
         
         CCMenuItem *menuItem = [CCMenuItemSprite itemFromNormalSprite:background selectedSprite:nil target:self selector:@selector(onTouch:)];
@@ -127,7 +134,13 @@
 
 -(void) onTouch:(id) sender
 {
-    [[CCDirector sharedDirector] replaceScene:[MenuScene node]];
+    BOOL completedLevel = [[World sharedWorld] completedLevel];
+    if (completedLevel) {
+        [[CCDirector sharedDirector] replaceScene:[World node]];
+    }
+    else {
+        [[CCDirector sharedDirector] replaceScene:[MenuScene node]];
+    }
 }
 
 @end
