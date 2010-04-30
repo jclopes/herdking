@@ -23,10 +23,13 @@
     float levelTime;
     float allPlayingTime;
     int totalHerdedSheeps;
+    BOOL completedLevel;
+    int nextLevel;
 }
 
 @property (readonly) float allPlayingTime;
 @property (readonly) int totalHerdedSheeps;
+@property (readonly) BOOL completedLevel;
 
 + (World *)sharedWorld;
 
@@ -38,7 +41,7 @@
 -(void) onEnd:(ccTime) dt;
 -(void) step:(ccTime) delta;
 -(void) check_mic:(ccTime)delta;
--(void) check_end:(ccTime)delta;
+-(BOOL) check_end:(ccTime)delta;
 -(void) load_level:(int)levelNumber;
 
 @end

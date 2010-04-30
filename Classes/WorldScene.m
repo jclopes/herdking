@@ -19,6 +19,7 @@ static World *sharedWorld = nil;
 
 @synthesize allPlayingTime;
 @synthesize totalHerdedSheeps;
+@synthesize completedLevel;
 
 // Singleton Design Pattern
 
@@ -65,7 +66,9 @@ static World *sharedWorld = nil;
 		self.isTouchEnabled = YES;
 		self.isAccelerometerEnabled = YES;
 		
-        MAX_LEVEL_TIME = 50;
+        nextLevel = 1;
+        MAX_LEVEL_TIME = 60;
+        completedLevel = NO;
         levelTime = 0;
         allPlayingTime = 0;
         totalHerdedSheeps = 0;
@@ -211,13 +214,14 @@ static World *sharedWorld = nil;
     return res;
 }
 
--(void) check_end:(ccTime)delta
+-(BOOL) check_end:(ccTime)delta
 {
+    BOOL res = NO;
     int sheepsOutside = 0;
     
     if (levelTime >= MAX_LEVEL_TIME) {
         NSLog(@"GAME OVER");
-        [self onEnd:delta];
+        res = YES;
     }
     for (Actor *a in actorsList) {
         if (a.type == @"sheep") {
@@ -232,8 +236,11 @@ static World *sharedWorld = nil;
     }
     if (sheepsOutside == 0) {
         NSLog(@"FINISHED LEVEL WITH TIME:%2.3f", levelTime);
-        [self onEnd:delta];
+        completedLevel = YES;
+        nextLevel += 1;
+        res = YES;
     }
+    return res;
 }
 
 -(void) onEnter
@@ -241,11 +248,15 @@ static World *sharedWorld = nil;
 	[super onEnter];
     
 	NSLog(@"!!! ENTER WORLD !!!");
-    
-    [self load_level:1];
+
+    completedLevel = NO;
+    [self load_level:nextLevel];
     
     // Start accelerometer
-	[[UIAccelerometer sharedAccelerometer] setUpdateInterval:(1.0 / 30)];
+	[[UIAccelerometer sharedAccelerometer] setUpdateInterval:(1.0 / 40)];
+    
+    // disable screensaver
+    [UIApplication sharedApplication].idleTimerDisabled = YES;
     
     // Run step method every frame
     [self schedule: @selector(step:)];
@@ -255,6 +266,7 @@ static World *sharedWorld = nil;
 
 -(void) onEnd:(ccTime)dt
 {
+    allPlayingTime = levelTime;
     [[SCListener sharedListener] stop];
     [[CCDirector sharedDirector] replaceScene:[TimeOutScene node]];
 }
@@ -274,18 +286,20 @@ static World *sharedWorld = nil;
 -(void) step:(ccTime)delta
 {
     [timerText setString:[NSString stringWithFormat:@"%2.3f", MAX_LEVEL_TIME - levelTime]];
-    [self check_end:delta];
+    if (!([self check_end:delta])) {
+        for (Actor *actor in actorsList) {
+            [actor updateWithTime:delta];
+        }
+        for (StateMachine *brain in brainsList) {
+            [brain think];
+        }
+        levelTime += delta;
     
-    for (Actor *actor in actorsList) {
-        [actor updateWithTime:delta];
+        cpSpaceStep(space, 1.0/59.0);
     }
-    for (StateMachine *brain in brainsList) {
-        [brain think];
+    else {
+        [self onEnd:delta];
     }
-    
-    levelTime += delta;
-    
-    cpSpaceStep(space, 1.0/59.0);
 }
 
 -(void) ccTouchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
@@ -306,22 +320,32 @@ static World *sharedWorld = nil;
 // Use the accelerometer data to control the player movement
 -(void) accelerometer:(UIAccelerometer*)accelerometer didAccelerate:(UIAcceleration*)acceleration
 {	
+    //Lowpass filter
 	static float prevX=0, prevY=0;
 	
-#define kFilterFactor 0.05f
-	
-	float accelX = (float) acceleration.x * kFilterFactor + (1- kFilterFactor)*prevX;
-	float accelY = (float) acceleration.y * kFilterFactor + (1- kFilterFactor)*prevY;
-	
-	prevX = accelX;
-	prevY = accelY;
-	
-	CGPoint vector = CGPointMake(accelX, accelY);
+#define kFilterFactor 0.1f
+#define kAttenuation 3.0f
+#define kMinStep 0.02f
+    
+	float baseAccelX = ((float) acceleration.x * kFilterFactor) + (prevX * (1.0 - kFilterFactor));
+	float baseAccelY = ((float) acceleration.y * kFilterFactor) + (prevY * (1.0 - kFilterFactor));
+    
+	prevX = baseAccelX;
+	prevY = baseAccelY;
+
+    float dx = clampf(abs(baseAccelX - acceleration.x)/kMinStep - 1.0, 0.0, 1.0);
+    float dy = clampf(abs(baseAccelY - acceleration.y)/kMinStep - 1.0, 0.0, 1.0);
+    
+    float alphaX = (1. - dx) * kFilterFactor/kAttenuation + dx * kFilterFactor;
+    float alphaY = (1. - dy) * kFilterFactor/kAttenuation + dy * kFilterFactor;
+    float resAccelX = acceleration.x * alphaX + baseAccelX * (1. - alphaX);
+    float resAccelY = acceleration.y * alphaY + baseAccelY * (1. - alphaY);
+    
+	CGPoint vector = CGPointMake(resAccelX, resAccelY);
     NSValue *value = [NSValue valueWithCGPoint:vector];
     
     EventManager *em = [EventManager sharedEventManager];
 	Event *e = [[Event alloc] initWithType:@"accel_data"];
-    
     [[e parameters] setObject:value forKey:@"vector"];
     [em triggerEvent:e];
     [e release];
