@@ -55,9 +55,8 @@
         eventQueue = [NSMutableArray new];
         type = @"player";
         radius = 6.0;
-        MAX_SPEED = 100.0;
         mass = 50.0;
-        impulse = 100;
+        impulse = 50000;
         inertia = cpMomentForCircle(mass, 0, radius, CGPointZero);
         NSLog(@"inertia=%f", inertia);
         body = cpBodyNew(mass, inertia);
@@ -95,7 +94,7 @@
     float velocityLen = cpvlength(body->v);
     if (velocityLen > 0) {
         CGPoint velocityNeg = cpvneg(body->v);
-        float accel = abs(MAX_SPEED - abs(MAX_SPEED - velocityLen));
+        float accel = velocityLen;
         CGPoint dumpingVector = cpvmult(velocityNeg, accel);
         cpBodyApplyForce(body, dumpingVector, CGPointZero);
     }
@@ -115,7 +114,7 @@
         CGPoint vector = [value CGPointValue];
 
         cpBodyResetForces(body);
-        cpBodyApplyForce(body, ccpMult(vector, impulse*300), CGPointZero);
+        cpBodyApplyForce(body, ccpMult(vector, impulse), CGPointZero);
     }
     if ([event eventType] == @"touch_data") {
         Event *e = [[Event alloc] initWithType:@"bark_event"];

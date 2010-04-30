@@ -57,7 +57,6 @@
 
 @interface Dog : Actor <EventListener> {
     int radius;
-    float MAX_SPEED;
     CCSprite *sprite;
     NSMutableArray *eventQueue;
 }
