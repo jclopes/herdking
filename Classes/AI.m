@@ -141,7 +141,7 @@
 {
     self = [super initWithName:@"SheepStateRunning" owner:ownerPtr];
     if (self) {
-        MAX_HEARING_DIST = 150;
+        MAX_HEARING_DIST = 200;
         MAX_COUNT = 40;
         count = MAX_COUNT;
         owner = ownerPtr;
