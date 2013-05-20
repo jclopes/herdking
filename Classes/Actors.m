@@ -11,6 +11,7 @@
 @implementation Actor
 
 @synthesize worldId;
+@synthesize world;
 @synthesize type;
 @synthesize name;
 @synthesize body, shape;
@@ -310,3 +311,71 @@
 }
 
 @end
+
+
+@implementation LineSegment
+
+-(id) initWithPointA:(CGPoint)p1 andPointB:(CGPoint)p2
+{
+    self = [super init];
+    if (self != nil) {
+        type = @"line";
+        vertices[0] = p1.x; vertices[1] = p1.y;
+        vertices[2] = p2.x; vertices[3] = p2.y;
+        colors[0] = 255; colors[1] = 200; colors[2] = 100; colors[3] = 255;
+        colors[4] = 255; colors[5] = 200; colors[6] = 100; colors[7] = 255;
+        
+        body = cpBodyNew(INFINITY, INFINITY);
+        cpBodySetPos(body, CGPointMake(0.0, 0.0));
+        shape = cpSegmentShapeNew(body, p1, p2, 4.0);
+        shape->e = 0.6;
+    }
+    return self;
+}
+
+-(void) draw
+{
+    BOOL texture2dEnabled = glIsEnabled(GL_TEXTURE_2D);
+    if (texture2dEnabled) {
+        glDisable(GL_TEXTURE_2D);
+    }
+    BOOL colorArrayEnabled = glIsEnabled(GL_COLOR_ARRAY);
+    if (!colorArrayEnabled) {
+        glEnableClientState(GL_COLOR_ARRAY);
+    }
+    
+    BOOL vertexArrayEnabled = glIsEnabled(GL_VERTEX_ARRAY);
+    if (!vertexArrayEnabled) {
+        glEnableClientState(GL_VERTEX_ARRAY);
+    }
+    
+    //    glTranslatef(60.0, 1.0, 0.0);
+    glLineWidth(2.0f);
+    
+    glColorPointer(4, GL_UNSIGNED_BYTE, 0, colors);
+    glVertexPointer(2, GL_FLOAT, 0, vertices);
+    
+    glDrawArrays(GL_LINES, 0, 2);
+    
+    if (!vertexArrayEnabled) {
+        glDisableClientState(GL_VERTEX_ARRAY);
+    }
+    if (!colorArrayEnabled) {
+        glDisableClientState(GL_COLOR_ARRAY);
+    }
+    if (texture2dEnabled) {
+        glEnable(GL_TEXTURE_2D);
+    }
+}
+
+- (void) dealloc
+{
+    cpShapeDestroy(shape);
+    cpBodyDestroy(body);
+    [type release];
+    [super dealloc];
+}
+
+
+@end
+

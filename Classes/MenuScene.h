@@ -40,6 +40,15 @@
 @end
 
 
+@interface HowtoPlayScene : CCScene {
+    
+}
+
+-(void) onTouch:(id)sender;
+
+@end
+
+
 @interface TimeOutScene : CCScene {
     
 }

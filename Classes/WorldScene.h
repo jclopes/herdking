@@ -21,17 +21,15 @@
     CCLabel *timerText;
     float MAX_LEVEL_TIME;
     float levelTime;
-    float allPlayingTime;
     int totalHerdedSheeps;
     BOOL completedLevel;
-    int nextLevel;
+    int level;
 }
 
-@property (readonly) float allPlayingTime;
+@property (readonly) float levelTime;
 @property (readonly) int totalHerdedSheeps;
+@property (readwrite) int level;
 @property (readonly) BOOL completedLevel;
-
-+ (World *)sharedWorld;
 
 // returns a Scene that contains the World as the only child
 -(int) nextId;

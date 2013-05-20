@@ -11,51 +11,14 @@
 #import "MenuScene.h"
 #import "AI.h"
 #import "Events.h"
-
-
-static World *sharedWorld = nil;
+#import "GameStats.h"
 
 @implementation World
 
-@synthesize allPlayingTime;
+@synthesize levelTime;
 @synthesize totalHerdedSheeps;
 @synthesize completedLevel;
-
-// Singleton Design Pattern
-
-+(World *) sharedWorld
-{
-    if (sharedWorld == nil) {
-        sharedWorld = [[super allocWithZone:NULL] init];
-    }
-    
-    return sharedWorld;
-}
-
-+(id) allocWithZone:(NSZone *)zone
-{
-    return [self sharedWorld];
-}
-
-- (id)copyWithZone:(NSZone *)zone {
-	return self;
-}
-
-- (id)retain {
-	return self;
-}
-
-- (unsigned)retainCount {
-	return UINT_MAX;
-}
-
-- (void)release {
-	// Do nothing.
-}
-
-- (id)autorelease {
-	return self;
-}
+@synthesize level;
 
 // World implementation
 
@@ -66,11 +29,10 @@ static World *sharedWorld = nil;
 		self.isTouchEnabled = YES;
 		self.isAccelerometerEnabled = YES;
 		
-        nextLevel = 1;
+        level = [GameStats sharedGameStats].nextLevel;
         MAX_LEVEL_TIME = 60;
         completedLevel = NO;
         levelTime = 0;
-        allPlayingTime = 0;
         totalHerdedSheeps = 0;
         
         idCounter = 0;
@@ -140,8 +102,8 @@ static World *sharedWorld = nil;
 
 -(void) load_level:(int)levelNumber
 {
-    NSString *levelName = [NSString stringWithFormat:@"lv%d.plist", levelNumber];
-    NSString *fullpath = [CCFileUtils fullPathFromRelativePath:levelName];
+    NSString *levelName = [NSString stringWithFormat:@"lv%d", levelNumber];
+    NSString *fullpath = [[NSBundle mainBundle]pathForResource:levelName ofType:@"plist"];
     NSDictionary *lv = [NSDictionary dictionaryWithContentsOfFile:fullpath];
     
     // Load Player Dog
@@ -171,6 +133,19 @@ static World *sharedWorld = nil;
         [brainsList addObject:sheepBrain];
     }
     
+    NSArray *lineList = [lv objectForKey:@"lines"];
+    for (NSDictionary *linePoints in lineList) {
+        NSNumber *ax = [linePoints objectForKey:@"ax"];
+        NSNumber *ay = [linePoints objectForKey:@"ay"];
+        NSNumber *bx = [linePoints objectForKey:@"bx"];
+        NSNumber *by = [linePoints objectForKey:@"by"];
+        LineSegment *line = [[[LineSegment alloc]
+                             initWithPointA:CGPointMake([ax intValue], [ay intValue])
+                             andPointB:CGPointMake([bx intValue], [by intValue])]
+                             autorelease];
+        [self addActor:line];
+    }
+    
     // Load Fence
     fence = [[FenceSegment alloc]init];
     [self addActor:fence];
@@ -184,7 +159,8 @@ static World *sharedWorld = nil;
 
 -(void) addActor:(Actor *)actor
 {
-    [actor setWorldId:[self nextId]];
+    actor.world = self;
+    actor.worldId = [self nextId];
     [actor addToSpace:space];
     [actorsList addObject:actor];
     [self addChild:actor];
@@ -235,9 +211,10 @@ static World *sharedWorld = nil;
         }
     }
     if (sheepsOutside == 0) {
-        NSLog(@"FINISHED LEVEL WITH TIME:%2.3f", levelTime);
+        [GameStats sharedGameStats].totalHerdedSheeps += totalHerdedSheeps;
+        [GameStats sharedGameStats].levelTime = levelTime;
+        [GameStats sharedGameStats].completedLevel = YES;
         completedLevel = YES;
-        nextLevel += 1;
         res = YES;
     }
     return res;
@@ -248,9 +225,10 @@ static World *sharedWorld = nil;
 	[super onEnter];
     
 	NSLog(@"!!! ENTER WORLD !!!");
+    [UIApplication sharedApplication].idleTimerDisabled = YES;
 
     completedLevel = NO;
-    [self load_level:nextLevel];
+    [self load_level:level];
     
     // Start accelerometer
 	[[UIAccelerometer sharedAccelerometer] setUpdateInterval:(1.0 / 40)];
@@ -266,7 +244,7 @@ static World *sharedWorld = nil;
 
 -(void) onEnd:(ccTime)dt
 {
-    allPlayingTime = levelTime;
+    [UIApplication sharedApplication].idleTimerDisabled = NO;
     [[SCListener sharedListener] stop];
     [[CCDirector sharedDirector] replaceScene:[TimeOutScene node]];
 }

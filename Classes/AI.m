@@ -208,7 +208,7 @@
 {
     count -= 1;
     
-    Actor * nearestSheep = [[World sharedWorld] nearets_actor_type:@"sheep" to_actor:owner];
+    Actor * nearestSheep = [owner.world nearets_actor_type:@"sheep" to_actor:owner];
     if (nearestSheep) {
         CGPoint direction = cpvsub(nearestSheep.body->p, owner.body->p);
         [owner move_direction:cpvnormalize(direction) speed:0.3];

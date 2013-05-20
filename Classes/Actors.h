@@ -24,7 +24,6 @@
 
 // Importing Chipmunk headers
 #import "chipmunk.h"
-
 #import "Events.h"
 
 
@@ -37,10 +36,12 @@
     int impulse;
     cpBody *body;
     cpShape *shape;
+    id world;
     NSMutableDictionary *status;
 }
 
 @property (readwrite) int worldId;
+@property (readwrite, assign) id world;
 @property (readonly) NSString *type;
 @property (retain, readwrite) id name;
 @property (readonly) cpBody *body;
@@ -91,5 +92,15 @@
 }
 
 @property (readonly)cpBB bb;
+
+@end
+
+
+@interface LineSegment : Actor {
+    GLfloat vertices[4];    // 2x (X, Y)
+    GLubyte colors[8];     // 2x (R, G, B, A)
+}
+
+-(id) initWithPointA:(CGPoint)p1 andPointB:(CGPoint)p2;
 
 @end
